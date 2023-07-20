@@ -809,7 +809,7 @@ defmodule Bamboo.SMTPAdapterTest do
 
   defp format_email(emails), do: format_email(emails, true)
 
-  defp format_email({name, email}, true), do: "#{rfc822_encode(name)} <#{email}>"
+  defp format_email({name, email}, true), do: "\"#{rfc822_encode(name)}\" <#{email}>"
   defp format_email({_name, email}, false), do: email
 
   defp format_email(emails, format) when is_list(emails) do
