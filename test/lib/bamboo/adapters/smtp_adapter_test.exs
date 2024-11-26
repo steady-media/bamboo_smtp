@@ -118,6 +118,27 @@ defmodule Bamboo.SMTPAdapterTest do
     :ok
   end
 
+  describe "rfc2047_encode/1" do
+    test "doesn't encode ASCII strings" do
+      string = "hello"
+      assert SMTPAdapter.rfc2047_encode(string) == string
+    end
+
+    test "encodes non-ASCII strings" do
+      string = "hello 💛"
+      assert SMTPAdapter.rfc2047_encode(string) == "=?UTF-8?B?#{Base.encode64(string)}?="
+    end
+
+    test "splits long values of non-ASCII strings" do
+      # a string of 11 yellow heart emojis happens to be encoded into the largest allowed block
+      chunk = for(_ <- 1..11, do: "💛", into: "")
+      long_string = chunk <> chunk
+
+      assert SMTPAdapter.rfc2047_encode(long_string) ==
+               "=?UTF-8?B?#{Base.encode64(chunk)}?= =?UTF-8?B?#{Base.encode64(chunk)}?="
+    end
+  end
+
   test "raises if the server is nil" do
     assert_raise ArgumentError, ~r/Key server is required/, fn ->
       SMTPAdapter.handle_config(configuration(%{server: nil}))
