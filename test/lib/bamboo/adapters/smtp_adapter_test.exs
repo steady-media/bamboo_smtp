@@ -118,6 +118,35 @@ defmodule Bamboo.SMTPAdapterTest do
     :ok
   end
 
+  describe "rfc5322_encode/1" do
+    test "doesn't encode ASCII strings without quotes or backslashs" do
+      string = "hello"
+      assert SMTPAdapter.rfc5322_encode(string) == string
+    end
+
+    test "encodes ASCII strings if they have a quote or a backslash" do
+      string = "hello\""
+      assert SMTPAdapter.rfc5322_encode(string) == "=?UTF-8?B?#{Base.encode64(string)}?="
+
+      string = "hello\\"
+      assert SMTPAdapter.rfc5322_encode(string) == "=?UTF-8?B?#{Base.encode64(string)}?="
+    end
+
+    test "encodes non-ASCII strings" do
+      string = "hello 💛"
+      assert SMTPAdapter.rfc5322_encode(string) == "=?UTF-8?B?#{Base.encode64(string)}?="
+    end
+
+    test "splits long values of non-ASCII strings" do
+      # a string of 11 yellow heart emojis happens to be encoded into the largest allowed block
+      chunk = for(_ <- 1..11, do: "💛", into: "")
+      long_string = chunk <> chunk
+
+      assert SMTPAdapter.rfc5322_encode(long_string) ==
+               "=?UTF-8?B?#{Base.encode64(chunk)}?= =?UTF-8?B?#{Base.encode64(chunk)}?="
+    end
+  end
+
   describe "rfc2047_encode/1" do
     test "doesn't encode ASCII strings" do
       string = "hello"

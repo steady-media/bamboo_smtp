@@ -213,6 +213,14 @@ defmodule Bamboo.SMTPAdapter do
     "UTF-8''#{URI.encode(content)}"
   end
 
+  def rfc5322_encode(content) do
+    if ascii_printable?(content) && !String.contains?(content, ["\"", "\\"]) do
+      content
+    else
+      do_rfc2047_encode(content, [])
+    end
+  end
+
   def rfc2047_encode(content) do
     if ascii_printable?(content) do
       content
@@ -416,7 +424,7 @@ defmodule Bamboo.SMTPAdapter do
   defp format_email({nil, email}, _format), do: puny_encode(email)
 
   defp format_email({name, email}, true),
-    do: "\"#{rfc2047_encode(name)}\" <#{puny_encode(email)}>"
+    do: "\"#{rfc5322_encode(name)}\" <#{puny_encode(email)}>"
 
   defp format_email({_name, email}, false), do: puny_encode(email)
 
