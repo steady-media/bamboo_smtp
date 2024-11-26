@@ -206,15 +206,57 @@ defmodule Bamboo.SMTPAdapter do
   end
 
   defp add_subject(body, %Bamboo.Email{subject: subject}) do
-    add_smtp_header_line(body, :subject, rfc822_encode(subject))
-  end
-
-  defp rfc822_encode(content) do
-    "=?UTF-8?B?#{Base.encode64(content)}?="
+    add_smtp_header_line(body, :subject, rfc2047_encode(subject))
   end
 
   defp rfc2231_encode(content) do
     "UTF-8''#{URI.encode(content)}"
+  end
+
+  def rfc2047_encode(content) do
+    if ascii_printable?(content) do
+      content
+    else
+      do_rfc2047_encode(content, [])
+    end
+  end
+
+  defp ascii_printable?(content) do
+    content
+    |> to_charlist()
+    |> Enum.all?(fn char -> 32 <= char and char <= 126 end)
+  end
+
+  defp do_rfc2047_encode("", acc), do: acc |> Enum.reverse() |> Enum.join(" ")
+
+  @rfc2047_maximum_encoded_word_length 75
+  defp do_rfc2047_encode(string, acc) do
+    # https://tools.ietf.org/html/rfc2047
+    # > An encoded-word may not be more than 75 characters long, including
+    # > charset, encoding, encoded-text, and delimiters.  If it is desirable
+    # > to encode more text than will fit in an encoded-word of 75
+    # > characters, multiple encoded-words (separated by SPACE or newline)
+    # > may be used.
+    maximum_possible_text_length =
+      @rfc2047_maximum_encoded_word_length - String.length(encode_word(""))
+
+    {encoded, rest} =
+      Enum.reduce_while(maximum_possible_text_length..1, nil, fn n, _ ->
+        {word, rest} = String.split_at(string, n)
+        encoded = encode_word(word)
+
+        if String.length(encoded) <= @rfc2047_maximum_encoded_word_length do
+          {:halt, {encoded, rest}}
+        else
+          {:cont, nil}
+        end
+      end)
+
+    do_rfc2047_encode(rest, [encoded | acc])
+  end
+
+  defp encode_word(word) do
+    "=?UTF-8?B?#{Base.encode64(word)}?="
   end
 
   def base64_and_split(data) do
@@ -372,7 +414,10 @@ defmodule Bamboo.SMTPAdapter do
   end
 
   defp format_email({nil, email}, _format), do: puny_encode(email)
-  defp format_email({name, email}, true), do: "\"#{rfc822_encode(name)}\" <#{puny_encode(email)}>"
+
+  defp format_email({name, email}, true),
+    do: "\"#{rfc2047_encode(name)}\" <#{puny_encode(email)}>"
+
   defp format_email({_name, email}, false), do: puny_encode(email)
 
   defp format_email(emails, format) when is_list(emails) do
