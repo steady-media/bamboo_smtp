@@ -2,7 +2,7 @@ defmodule BambooSmtp.Mixfile do
   use Mix.Project
 
   @project_url "https://github.com/fewlinesco/bamboo_smtp"
-  @version "4.1.0"
+  @version "4.2.2"
 
   def project do
     [
@@ -33,7 +33,7 @@ defmodule BambooSmtp.Mixfile do
       {:gen_smtp, "~> 1.2.0"},
 
       # dev / test
-      {:credo, "~> 1.5.0", only: [:dev, :test]},
+      {:credo, "~> 1.6.1", only: [:dev, :test]},
       {:excoveralls, "~> 0.14.0", only: :test},
 
       # doc
@@ -56,7 +56,7 @@ defmodule BambooSmtp.Mixfile do
       maintainers: ["Kevin Disneur", "Thomas Gautier"],
       licenses: ["MIT"],
       links: %{
-        "Changelog" => "#{@project_url}/blob/master/CHANGELOG.md",
+        "Changelog" => "#{@project_url}/blob/main/CHANGELOG.md",
         "GitHub" => @project_url
       }
     ]
